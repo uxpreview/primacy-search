@@ -1,0 +1,31 @@
+:root {
+  /* Surfaces — tinted toward the brand green, never pure #fff / #000 */
+  --bg: oklch(0.985 0.004 155);
+  --surface: oklch(0.998 0.003 155);
+  --fg: oklch(0.19 0.014 158);
+  --muted: oklch(0.5 0.016 158);
+  --faint: oklch(0.66 0.012 158);
+  --hairline: oklch(0.9 0.006 155);
+
+  /* Brand accent — Primacy green */
+  --accent: #028538;
+  --accent-ink: #016b2c;
+
+  /* Overlays */
+  --scrim: oklch(0.19 0.014 158 / 0.5);
+
+  /* Geometry */
+  --radius-pill: 999px;
+  --dock-margin: 22px;
+  --gutter: clamp(20px, 5vw, 72px);
+  --nav-h: 64px;
+
+  /* Motion */
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* z-index contract */
+  --z-nav: 50;
+  --z-dock: 60;
+  --z-scrim: 70;
+  --z-panel: 80;
+}

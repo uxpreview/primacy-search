@@ -1,0 +1,110 @@
+@import "./styles/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Galano Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* Accessible focus ring */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  mark {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+    box-decoration-break: clone;
+  }
+}
+
+@layer components {
+  /* Eyebrow / index-style label */
+  .label {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .hairline {
+    border-color: var(--hairline);
+  }
+
+  /* Paper grain overlay */
+  .grain::before {
+    content: "";
+    position: fixed;
+    inset: -50%;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+}
+
+/* Dot-matrix: dots light up to form shapes */
+.dm-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 0.55s var(--ease-editorial), transform 0.55s var(--ease-editorial);
+}
+/* Pointer-reactive marks need a snappier response than the glyph morph */
+.dm-interactive {
+  transition-duration: 0.2s;
+}
+.dm-wave {
+  animation: dmWave 1.3s ease-in-out infinite;
+}
+@keyframes dmWave {
+  0%, 100% { opacity: 0.12; transform: scale(0.45); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Hide scrollbar on the horizontal tab strip while keeping scroll */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .dm-wave {
+    animation: none !important;
+  }
+}
