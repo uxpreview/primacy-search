@@ -158,7 +158,7 @@ export function HeroEditorialAlt() {
         className="absolute left-1/2 hidden -translate-x-1/2 font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-faint lg:block"
         style={{ bottom: EYEBROW_BOTTOM }}
       >
-        Ask Primacy anything
+        See what's possible
       </span>
 
       {/* Search ghost — bottom-center, like Editorial */}
