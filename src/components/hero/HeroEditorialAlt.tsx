@@ -32,10 +32,10 @@ function WorkWithUs({ className = "" }: { className?: string }) {
   );
 }
 
-// Inverse of Editorial: headline always left-aligned.
+// Inverse of Editorial: headline left-aligned on desktop, centered on mobile.
 function Headline() {
   return (
-    <h1 className="text-left font-display text-[clamp(2.3rem,min(5.9vw,10vh),5.6rem)] font-bold uppercase leading-[0.86] tracking-[-0.04em] text-fg">
+    <h1 className="text-center font-display text-[clamp(2.3rem,min(5.9vw,10vh),5.6rem)] font-bold uppercase leading-[0.86] tracking-[-0.04em] text-fg lg:text-left">
       {HEADLINE.map((line, i) => (
         <span
           key={line}
