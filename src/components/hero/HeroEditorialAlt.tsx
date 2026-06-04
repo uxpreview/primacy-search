@@ -1,7 +1,7 @@
 import { useSearch } from "@/state/SearchProvider";
 import { DotMatrix } from "@/components/ui/DotMatrix";
 
-const HEADLINE = ["Smart experience", "for meaningful", "moments"];
+const HEADLINE = ["Smart experiences", "for meaningful", "moments"];
 const TAGLINE = "The digital experience agency that does everything.";
 
 function ArrowUpRight({ className = "" }: { className?: string }) {
