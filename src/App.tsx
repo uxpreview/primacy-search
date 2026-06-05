@@ -7,6 +7,7 @@ import { Hero } from "@/components/hero/Hero";
 import { HeroEditorialAlt } from "@/components/hero/HeroEditorialAlt";
 import { HeroAiSearch } from "@/components/hero/HeroAiSearch";
 import { HeroGoo } from "@/components/hero/HeroGoo";
+import { HeroForge } from "@/components/hero/HeroForge";
 import { UniverseScroll } from "@/components/editorial/UniverseScroll";
 import { PageView } from "@/components/views/PageView";
 import { SearchDock } from "@/components/search/SearchDock";
@@ -45,6 +46,8 @@ function AppShell() {
                     <HeroAiSearch />
                   ) : variant === "v6" ? (
                     <HeroGoo />
+                  ) : variant === "v7" ? (
+                    <HeroForge />
                   ) : (
                     <Hero />
                   )}

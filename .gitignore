@@ -7,3 +7,6 @@ dist
 skill-observations
 .playwright-mcp
 *.zip
+
+# verification screenshots
+*.png

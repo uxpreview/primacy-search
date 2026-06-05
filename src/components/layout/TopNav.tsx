@@ -9,7 +9,7 @@ export function TopNav({ variant = "v1" }: { variant?: HeroVariant }) {
   const { view, setView } = useSearch();
   const [condensed, setCondensed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const editorial = variant === "v4" || variant === "v6";
+  const editorial = variant === "v4" || variant === "v6" || variant === "v7";
 
   useEffect(() => {
     const onScroll = () => setCondensed(window.scrollY > 24);

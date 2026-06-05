@@ -137,7 +137,7 @@ export function HeroEditorialAlt() {
       {/* ---------- Mobile / tablet: stacked flow ---------- */}
       <div className="flex min-h-[100svh] flex-col items-center justify-center gap-7 pb-[150px] pt-[112px] text-center lg:hidden">
         <div
-          className="aspect-square w-[clamp(130px,34vw,180px)] animate-fade-up"
+          className="aspect-square w-[clamp(150px,42vw,230px)] animate-fade-up"
           style={{ animationDelay: "0.04s" }}
         >
           <Mark className="h-full w-full" />

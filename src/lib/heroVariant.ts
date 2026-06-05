@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
-export type HeroVariant = "v1" | "v4" | "v5" | "v6";
+export type HeroVariant = "v1" | "v4" | "v5" | "v6" | "v7";
 
 const KEY = "primacy-hero-variant";
-const DEFAULT: HeroVariant = "v5";
-const ALL: HeroVariant[] = ["v1", "v4", "v5", "v6"];
+const DEFAULT: HeroVariant = "v7";
+const ALL: HeroVariant[] = ["v1", "v4", "v5", "v6", "v7"];
 
 function isVariant(v: string | null): v is HeroVariant {
   return v !== null && (ALL as string[]).includes(v);

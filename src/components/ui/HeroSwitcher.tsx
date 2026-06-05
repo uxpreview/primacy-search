@@ -5,6 +5,7 @@ const OPTIONS: { value: HeroVariant; label: string }[] = [
   { value: "v5", label: "Glass" },
   { value: "v1", label: "Minimal" },
   { value: "v4", label: "Inverse" },
+  { value: "v7", label: "Forge" },
 ];
 
 export function HeroSwitcher({
