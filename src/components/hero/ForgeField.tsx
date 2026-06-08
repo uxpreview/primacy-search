@@ -1,9 +1,14 @@
 import { useEffect, useRef } from "react";
 
 /* Full-bleed reactive dot field. A faint grid of "empty squares" covers the
- * whole hero and reacts to the cursor (shove + brighten). A right-side (or, on
- * mobile, top-centre) 11x11 region cycles through Primacy "objects" in solid
- * dots — the kept Forge animation, now living inside the background field. */
+ * whole hero and reacts to the cursor (shove + a green paint trail). A
+ * right-side (or, on mobile, top-centre) 11x11 region cycles through Primacy
+ * "objects" in solid dots — the kept Forge animation, now living inside the
+ * background field.
+ *
+ * Green trail: dots the cursor passes over take on the brand green and hold it
+ * for a few seconds before fading back, so you can almost "draw" on the hero
+ * without it staying loud. */
 
 const OBJECT_GLYPHS = [
   // Websites
@@ -24,13 +29,30 @@ const OBJ_SETS = OBJECT_GLYPHS.map((g) => {
 });
 
 const OBJ = 11; // object region is 11x11 cells
-const FG = "#15171a";
 const EMPTY_A = 0.08;
 const ON_A = 0.95;
-const RADIUS = 120; // cursor influence (px)
+const RADIUS = 120; // cursor shove influence (px)
 const PUSH = 13;
-const BRIGHT = 0.42;
 const CYCLE_MS = 1600;
+
+// Green paint trail
+const PAINT_RADIUS = 92; // brush size for the green trail (px)
+const GREEN_ALPHA = 0.82; // extra opacity at full green charge
+const GREEN_FADE = 0.95; // decay rate /sec — lower = lingers longer (~3-4s)
+const GREEN_POP = 0.32; // extra scale at full charge
+
+// Colour ramp: dark dot -> Primacy green (#028538). Precomputed so the render
+// loop never allocates colour strings.
+const DARK = { r: 21, g: 23, b: 26 };
+const ACCENT = { r: 2, g: 133, b: 56 };
+const LUT_N = 28;
+const COLOR_LUT = Array.from({ length: LUT_N }, (_, i) => {
+  const t = i / (LUT_N - 1);
+  const r = Math.round(DARK.r + (ACCENT.r - DARK.r) * t);
+  const g = Math.round(DARK.g + (ACCENT.g - DARK.g) * t);
+  const b = Math.round(DARK.b + (ACCENT.b - DARK.b) * t);
+  return `rgb(${r},${g},${b})`;
+});
 
 interface Cell { cx: number; cy: number; ox: number; oy: number } // ox/oy: object coord or -1
 
@@ -50,8 +72,9 @@ export function ForgeField({ className = "" }: { className?: string }) {
     let cells: Cell[] = [];
     let dx = new Float32Array(0);
     let dy = new Float32Array(0);
-    let av = new Float32Array(0); // current alpha
-    let sv = new Float32Array(0); // current scale
+    let av = new Float32Array(0); // current base alpha (empty/on)
+    let sv = new Float32Array(0); // current base scale
+    let gv = new Float32Array(0); // green charge 0..1
     let cell = 30;
     let W = 0;
     let H = 0;
@@ -92,6 +115,7 @@ export function ForgeField({ className = "" }: { className?: string }) {
       dy = new Float32Array(cells.length);
       av = new Float32Array(cells.length).fill(EMPTY_A);
       sv = new Float32Array(cells.length).fill(0.5);
+      gv = new Float32Array(cells.length);
     };
 
     build();
@@ -107,45 +131,64 @@ export function ForgeField({ className = "" }: { className?: string }) {
     let raf = 0;
     let glyph = 0;
     let lastCycle = 0;
+    let lastT = 0;
     const side = () => cell * 0.5;
+    const paintR2 = PAINT_RADIUS * PAINT_RADIUS;
 
     const frame = (t: number) => {
+      const dt = lastT ? Math.min(0.05, (t - lastT) / 1000) : 0;
+      lastT = t;
+      const greenDecay = Math.exp(-dt * GREEN_FADE);
+
       if (t - lastCycle > CYCLE_MS) { glyph = (glyph + 1) % OBJ_SETS.length; lastCycle = t; }
       const set = OBJ_SETS[glyph];
       const c = cursor.current;
       ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = FG;
       const s = side();
       const r = s * 0.3;
+      let curStyle = "";
 
       for (let i = 0; i < cells.length; i++) {
         const cl = cells[i];
         const on = cl.ox >= 0 && set.has(`${cl.ox},${cl.oy}`);
-        let baseA = on ? ON_A : EMPTY_A;
-        let baseS = on ? 1 : 0.5;
-        let tx = 0, ty = 0, bright = 0;
+        const baseA = on ? ON_A : EMPTY_A;
+        const baseS = on ? 1 : 0.5;
+
+        let tx = 0, ty = 0;
+        // fade the green charge, then re-paint it where the cursor is now
+        gv[i] *= greenDecay;
         if (c) {
           const ddx = cl.cx - c.x, ddy = cl.cy - c.y;
-          const dist = Math.hypot(ddx, ddy);
-          if (dist < RADIUS && dist > 0.01) {
+          const d2 = ddx * ddx + ddy * ddy;
+          if (d2 < RADIUS * RADIUS && d2 > 0.01) {
+            const dist = Math.sqrt(d2);
             const f = 1 - dist / RADIUS;
             tx = (ddx / dist) * f * PUSH;
             ty = (ddy / dist) * f * PUSH;
-            bright = f * BRIGHT;
+          }
+          if (!reduce && d2 < paintR2) {
+            const ps = 1 - Math.sqrt(d2) / PAINT_RADIUS;
+            if (ps > gv[i]) gv[i] = ps;
           }
         }
+
         const lp = reduce ? 1 : 0.18;
         dx[i] += (tx - dx[i]) * lp;
         dy[i] += (ty - dy[i]) * lp;
-        av[i] += (Math.min(1, baseA + bright) - av[i]) * lp;
-        sv[i] += ((baseS + bright * 0.5) - sv[i]) * lp;
+        av[i] += (baseA - av[i]) * lp;
+        sv[i] += (baseS - sv[i]) * lp;
 
-        const a = av[i];
+        const green = gv[i];
+        const a = green > 0.002 ? Math.min(1, av[i] + green * GREEN_ALPHA) : av[i];
         if (a < 0.015) continue;
-        const half = (s * sv[i]) / 2;
+        const scale = sv[i] + green * GREEN_POP;
+        const w = s * scale;
+        const half = w / 2;
         const x = cl.cx + dx[i] - half;
         const y = cl.cy + dy[i] - half;
-        const w = s * sv[i];
+
+        const want = green > 0.002 ? COLOR_LUT[Math.round(green * (LUT_N - 1))] : COLOR_LUT[0];
+        if (want !== curStyle) { ctx.fillStyle = want; curStyle = want; }
         ctx.globalAlpha = a;
         ctx.beginPath();
         ctx.roundRect(x, y, w, w, r);
