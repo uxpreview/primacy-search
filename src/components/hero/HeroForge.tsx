@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import { useSearch } from "@/state/SearchProvider";
 import { ForgeField } from "./ForgeField";
 
@@ -40,6 +41,22 @@ function Headline() {
 
 export function HeroForge() {
   const { heroRef, ghostRef } = useSearch();
+  const deskClusterRef = useRef<HTMLDivElement>(null);
+  const taglineRef = useRef<HTMLParagraphElement>(null);
+  const mobileTextRef = useRef<HTMLDivElement>(null);
+
+  // Hand the field the live boxes of the hero text so it keeps the green trail
+  // from painting behind them — text stays legible no matter how much you draw.
+  const getProtectRects = useCallback(() => {
+    const els = [deskClusterRef.current, taglineRef.current, mobileTextRef.current];
+    const rects: DOMRect[] = [];
+    for (const el of els) {
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) rects.push(r);
+    }
+    return rects;
+  }, []);
 
   const SEARCH_BASE = "clamp(26px, 7vh, 84px)";
   const COL_BOTTOM = `calc(${SEARCH_BASE} + 104px)`;
@@ -53,11 +70,11 @@ export function HeroForge() {
     >
       {/* Full-bleed reactive dot field (empty squares + cursor hover); the
           object animation lives in its right-side region. */}
-      <ForgeField className="z-0" />
+      <ForgeField className="z-0" getProtectRects={getProtectRects} />
 
       {/* ---------- Desktop: headline left; the forge field carries the right ---------- */}
       <div className="relative z-10 mx-auto hidden h-[100svh] max-w-[1440px] lg:block">
-        <div className="absolute left-0 top-1/2 flex max-w-[56%] -translate-y-1/2 flex-col items-start gap-[clamp(10px,1.6vh,22px)]">
+        <div ref={deskClusterRef} className="absolute left-0 top-1/2 flex max-w-[56%] -translate-y-1/2 flex-col items-start gap-[clamp(10px,1.6vh,22px)]">
           <div className="animate-fade-up" style={{ animationDelay: "0.34s" }}>
             <WorkWithUs />
           </div>
@@ -65,16 +82,18 @@ export function HeroForge() {
         </div>
 
         <div className="absolute right-0 z-10 animate-fade-up" style={{ bottom: COL_BOTTOM, animationDelay: "0.42s" }}>
-          <p className="ml-auto max-w-[24ch] text-right font-display text-[clamp(0.7rem,0.95vw,0.85rem)] font-bold uppercase leading-[1.55] tracking-[0.16em] text-fg/65">
+          <p ref={taglineRef} className="ml-auto max-w-[24ch] text-right font-display text-[clamp(0.7rem,0.95vw,0.85rem)] font-bold uppercase leading-[1.55] tracking-[0.16em] text-fg/65">
             {TAGLINE}
           </p>
         </div>
       </div>
 
       {/* ---------- Mobile / tablet ---------- */}
-      <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-end gap-7 pb-[164px] pt-[150px] text-center lg:hidden">
-        <Headline />
-        <WorkWithUs />
+      <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-end pb-[164px] pt-[150px] text-center lg:hidden">
+        <div ref={mobileTextRef} className="flex flex-col items-center gap-7">
+          <Headline />
+          <WorkWithUs />
+        </div>
       </div>
 
       {/* Search eyebrow */}

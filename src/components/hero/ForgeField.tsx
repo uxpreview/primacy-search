@@ -40,6 +40,8 @@ const PAINT_RADIUS = 92; // brush size for the green trail (px)
 const GREEN_ALPHA = 0.82; // extra opacity at full green charge
 const GREEN_FADE = 0.95; // decay rate /sec — lower = lingers longer (~3-4s)
 const GREEN_POP = 0.32; // extra scale at full charge
+const PROTECT_PAD = 6; // px padding around protected text boxes
+const PROTECT_FEATHER = 32; // px soft ramp from text edge back to full green
 
 // Colour ramp: dark dot -> Primacy green (#028538). Precomputed so the render
 // loop never allocates colour strings.
@@ -56,10 +58,12 @@ const COLOR_LUT = Array.from({ length: LUT_N }, (_, i) => {
 
 interface Cell { cx: number; cy: number; ox: number; oy: number } // ox/oy: object coord or -1
 
-export function ForgeField({ className = "" }: { className?: string }) {
+export function ForgeField({ className = "", getProtectRects }: { className?: string; getProtectRects?: () => DOMRect[] }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursor = useRef<{ x: number; y: number } | null>(null);
+  const protectRef = useRef(getProtectRects);
+  protectRef.current = getProtectRects;
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -75,6 +79,7 @@ export function ForgeField({ className = "" }: { className?: string }) {
     let av = new Float32Array(0); // current base alpha (empty/on)
     let sv = new Float32Array(0); // current base scale
     let gv = new Float32Array(0); // green charge 0..1
+    let pf = new Float32Array(0); // green-allowed factor (0 behind text)
     let cell = 30;
     let W = 0;
     let H = 0;
@@ -116,11 +121,45 @@ export function ForgeField({ className = "" }: { className?: string }) {
       av = new Float32Array(cells.length).fill(EMPTY_A);
       sv = new Float32Array(cells.length).fill(0.5);
       gv = new Float32Array(cells.length);
+
+      // Protect text: suppress the green trail behind the headline/tagline so it
+      // never reduces their contrast. pf[i] = 0 inside a text box, ramping back
+      // to 1 over PROTECT_FEATHER px outside it (soft edge, no visible seam).
+      pf = new Float32Array(cells.length).fill(1);
+      const rects = protectRef.current?.() ?? [];
+      if (rects.length) {
+        const wr = wrap.getBoundingClientRect();
+        const boxes = rects.map((b) => ({
+          l: b.left - wr.left - PROTECT_PAD,
+          t: b.top - wr.top - PROTECT_PAD,
+          r: b.right - wr.left + PROTECT_PAD,
+          btm: b.bottom - wr.top + PROTECT_PAD,
+        }));
+        for (let i = 0; i < cells.length; i++) {
+          const { cx, cy } = cells[i];
+          let f = 1;
+          for (let j = 0; j < boxes.length; j++) {
+            const b = boxes[j];
+            const ox = Math.max(b.l - cx, 0, cx - b.r);
+            const oy = Math.max(b.t - cy, 0, cy - b.btm);
+            const d = Math.hypot(ox, oy);
+            const bf = d >= PROTECT_FEATHER ? 1 : d / PROTECT_FEATHER;
+            if (bf < f) f = bf;
+          }
+          pf[i] = f;
+        }
+      }
     };
 
     build();
     const ro = new ResizeObserver(build);
     ro.observe(wrap);
+    // Re-measure protected boxes after fonts load and the entrance animation
+    // settles — both reflow the headline metrics.
+    if (typeof document !== "undefined" && document.fonts?.ready) {
+      document.fonts.ready.then(() => build()).catch(() => {});
+    }
+    const settle = window.setTimeout(build, 900);
 
     const onMove = (e: MouseEvent) => {
       const r = canvas.getBoundingClientRect();
@@ -178,7 +217,7 @@ export function ForgeField({ className = "" }: { className?: string }) {
         av[i] += (baseA - av[i]) * lp;
         sv[i] += (baseS - sv[i]) * lp;
 
-        const green = gv[i];
+        const green = gv[i] * pf[i];
         const a = green > 0.002 ? Math.min(1, av[i] + green * GREEN_ALPHA) : av[i];
         if (a < 0.015) continue;
         const scale = sv[i] + green * GREEN_POP;
@@ -202,6 +241,7 @@ export function ForgeField({ className = "" }: { className?: string }) {
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      window.clearTimeout(settle);
       window.removeEventListener("mousemove", onMove);
     };
   }, []);
